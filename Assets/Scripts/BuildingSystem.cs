@@ -8,12 +8,14 @@ public enum BlockType
 {
     Default = 0,
     Thruster = 1,
-    Count = 2
+    Gyroscope = 2,
+    Count = 3
 }
 
 [System.Serializable]
 public class PartData
 {
+    public BlockType Type;
     public GameObject partPrefab;
     public GameObject partPreviewPrefab;
 }
@@ -48,6 +50,13 @@ public class BuildingSystem : MonoBehaviour
         {
             Destroy(partPreview);
             currentType = BlockType.Thruster;
+            partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
+            partPreview.SetActive(false);
+        }
+        else if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        {
+            Destroy(partPreview);
+            currentType = BlockType.Gyroscope;
             partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
             partPreview.SetActive(false);
         }

@@ -1,7 +1,12 @@
 using Mono.Cecil.Cil;
+using NaughtyAttributes;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Reflection.Emit;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [System.Serializable]
 public enum ThrusterOrientation
@@ -11,35 +16,61 @@ public enum ThrusterOrientation
     Left,
     Right,
     Forward,
-    Backward
+    Backward,
+    Count
 }
 
 public class Thruster : Part
 {
+    private bool overrideGlobal = false;
     [SerializeField]
     private float force = 1.0f;
-    private ThrusterOrientation orientation;
+    [HideInInspector]
+    public ThrusterOrientation orientation;
+    private Structure m_structure;
+
+    private float displayValue;
 
     private void Start()
     {
-        var heightMax = Mathf.Sin(Mathf.Deg2Rad * 15.0f);
-        if (Mathf.Abs(transform.up.y) < heightMax)
-        {
-            //Figure out how to get the orientation when its not clearly up or down
+        m_structure = GetComponentInParent<Structure>();
+        //Straight up devilry right here
+        //Debug.Log($"{transform.up}"); //->(1.00,0.00,0.00)
+        //Debug.Log($"up.x: {transform.up.x}"); //->1
+        //Debug.Log($"up.x == 1.0f:{transform.up.x == 1.0f}");//->False
+        //Debug.Log($"up.x == 1:{transform.up.x == 1}");//->False
+        //Debug.Log($"up.x > 0:{transform.up.x > 0}");//->True
 
-        }
-        else
-        {
-            if (transform.up.y > 0.0f)
-                orientation = ThrusterOrientation.Up;
-            else if (transform.up.y < 0.0f)
-                orientation = ThrusterOrientation.Down;
-        }
+        if (transform.up.y >= 0.0f)
+            orientation = ThrusterOrientation.Up;
+        if (transform.up.y < 0.0f)
+            orientation = ThrusterOrientation.Down;
+
+        if (transform.up.x >= 0.0f)
+            orientation = ThrusterOrientation.Right;
+        if (transform.up.x < 0.0f)
+            orientation = ThrusterOrientation.Left;
+
+        if (transform.up.z >= 0.0f)
+            orientation = ThrusterOrientation.Forward;
+        if (transform.up.z < 0.0f)
+            orientation = ThrusterOrientation.Backward;
     }
 
-    public void ApplyForce(Rigidbody rb, float throttle)
+    public void ApplyForce(Rigidbody rb, Vector3 input, int thrusterCount,float globalForce)
     {
+        var comp = Mathf.Max(0,Vector3.Dot(input, transform.up));
         var gravForce = Physics.gravity.magnitude;
-        rb.AddForceAtPosition(transform.up * gravForce * force * throttle, transform.position, ForceMode.Force);
+        var COM = rb.transform.position + (transform.rotation * rb.centerOfMass);
+        var dstFromCOM = (transform.position- COM).magnitude;
+        var forceAdjusted = ((overrideGlobal ? force : globalForce) / dstFromCOM);
+        var throttle = /*1.0f +*/ (comp * (thrusterCount / 10.0f));
+        displayValue = forceAdjusted;
+        rb.AddForceAtPosition(transform.up * /*gravForce **/ forceAdjusted * throttle, transform.position, ForceMode.Force);
+    }
+
+    private void OnDrawGizmos()
+    {
+        Handles.Label(transform.position,$"{displayValue}");
     }
 }
