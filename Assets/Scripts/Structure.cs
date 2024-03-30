@@ -37,6 +37,8 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
     private bool dampners = true;
     [SerializeField]
     private bool keepHeight = true;
+    [SerializeField]
+    private float targetHeight;
     private bool play = false;
     private Vector3 startPos;
     private Quaternion startRot;
@@ -97,8 +99,7 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         {
             foreach (var thruster in thrusters)
             {
-                //var vec = dampners && Mathf.Approximately(inputVec.magnitude, 0) ? inputVec : -rb.velocity.normalized;
-                thruster.ApplyForce(rb, inputVec, thrusterCounts[thruster.orientation], globalForce, keepHeight);
+                thruster.ApplyForce(rb, inputVec, globalForce, thrusterCounts[thruster.orientation], transform.position.y, targetHeight, keepHeight);
             }
         }
     }
@@ -111,24 +112,6 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         {
             transform.position = startPos;
             transform.rotation = startRot;
-            //inputVec = Vector3.zero;
-            //if (Keyboard.current.spaceKey.isPressed)
-            //    inputVec.y = 1.0f;
-
-            //if (Keyboard.current.leftShiftKey.isPressed)
-            //    inputVec.y = -1.0f;
-
-            //if (Keyboard.current.rightArrowKey.isPressed)
-            //    inputVec.x = 1.0f;
-
-            //if (Keyboard.current.leftArrowKey.isPressed)
-            //    inputVec.x = -1.0f;
-
-            //if (Keyboard.current.upArrowKey.isPressed)
-            //    inputVec.z = 1.0f;
-
-            //if (Keyboard.current.downArrowKey.isPressed)
-            //    inputVec.z = -1.0f;
         }
     }
 

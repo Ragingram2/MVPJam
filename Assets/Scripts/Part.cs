@@ -47,17 +47,6 @@ public class Part : MonoBehaviour
 
     public void AttachPart(GameObject prefab, Vector3 position, Vector3 faceNormal)
     {
-        //if (transform.parent == null)
-        //{
-        //    transform.parent = new GameObject("Structure").transform;
-        //    transform.parent.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
-        //    transform.parent.AddComponent<Structure>();
-        //    var rb = transform.parent.AddComponent<Rigidbody>();
-        //    rb.isKinematic = true;
-        //    rb.drag = 0.0f;
-        //    rb.useGravity = false;
-        //}
-
         var part = Instantiate(prefab, position, Quaternion.identity, transform.parent).GetComponent<Part>();
         part.transform.up = -faceNormal;
     }

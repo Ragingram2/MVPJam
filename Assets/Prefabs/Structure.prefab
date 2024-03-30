@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 8122456722402426540}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 5, z: 0}
+  m_LocalPosition: {x: 0, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -45,9 +45,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3799e2ee9376a446b7a81215f2ec799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  globalForce: 0.1
+  globalForce: 1
   dampners: 0
   keepHeight: 0
+  targetHeight: 5
 --- !u!54 &8126809129576466056
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -70,7 +71,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
