@@ -1,12 +1,8 @@
-using Mono.Cecil.Cil;
 using NaughtyAttributes;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Reflection.Emit;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
+using SimpleJSON;
 
 [System.Serializable]
 public enum ThrusterOrientation
@@ -22,9 +18,9 @@ public enum ThrusterOrientation
 
 public class Thruster : Part
 {
-    private bool overrideGlobal = false;
+    public bool overrideGlobal = false;
     [SerializeField]
-    private float force = 1.0f;
+    public float force = 1.0f;
     [HideInInspector]
     public ThrusterOrientation orientation;
     private Structure m_structure;
@@ -57,20 +53,38 @@ public class Thruster : Part
             orientation = ThrusterOrientation.Backward;
     }
 
-    public void ApplyForce(Rigidbody rb, Vector3 input, int thrusterCount,float globalForce)
+    public void ApplyForce(Rigidbody rb, Vector3 input, int thrusterCount, float globalForce)
     {
-        var comp = Mathf.Max(0,Vector3.Dot(input, transform.up));
+        var comp = Mathf.Max(0, Vector3.Dot(input, transform.up));
         var gravForce = Physics.gravity.magnitude;
         var COM = rb.transform.position + (transform.rotation * rb.centerOfMass);
-        var dstFromCOM = (transform.position- COM).magnitude;
+        var dstFromCOM = (transform.position - COM).magnitude;
         var forceAdjusted = ((overrideGlobal ? force : globalForce) / dstFromCOM);
         var throttle = /*1.0f +*/ (comp * (thrusterCount / 10.0f));
         displayValue = forceAdjusted;
         rb.AddForceAtPosition(transform.up * /*gravForce **/ forceAdjusted * throttle, transform.position, ForceMode.Force);
     }
 
-    private void OnDrawGizmos()
+    public override string ToJson()
     {
-        Handles.Label(transform.position,$"{displayValue}");
+        string json = "";
+
+        json += $",\"OverrideGlobal\":{overrideGlobal},\n";
+        json += $"\"Force\":{force}";
+
+        return base.ToJson() + json;
     }
+
+    public override void FromJson(string json)
+    {
+        base.FromJson(json);
+        var p = JSON.Parse(json);
+        overrideGlobal = p["OrverrideGlobal"].AsBool;
+        force = p["Force"].AsFloat;
+    }
+
+    //private void OnDrawGizmos()
+    //{
+    //    Handles.Label(transform.position, $"{displayValue}");
+    //}
 }

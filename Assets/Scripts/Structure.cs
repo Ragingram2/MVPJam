@@ -1,8 +1,31 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.InputSystem;
+
+
+//public class PartInfo
+//{
+//    public Vector3 position;
+//    public Quaternion rotation;
+//    public BlockType type;
+//    public bool overrideGlobal;
+//    public float force;
+
+//    public string ToJson()
+//    {
+//        string json = "";
+//        json += JsonUtility.ToJson(position) + ", \n";
+//        json += JsonUtility.ToJson(rotation) + ", \n";
+//        json += $"\"BlockType\":{(int)type}\n";
+//        json += $"\"OverrideGlobal\":{(int)type}";
+//        return json;
+//    }
+//}
 
 public class Structure : MonoBehaviour
 {
@@ -24,6 +47,7 @@ public class Structure : MonoBehaviour
         startPos = transform.position;
         startRot = transform.rotation;
         rb = GetComponent<Rigidbody>();
+        Refresh();
     }
 
     private void FixedUpdate()
@@ -44,6 +68,17 @@ public class Structure : MonoBehaviour
         {
             Refresh();
             play = !play;
+        }
+
+        if(Keyboard.current.deleteKey.wasPressedThisFrame)
+        {
+            Destroy(gameObject);
+        }
+
+        if (Keyboard.current.fKey.wasPressedThisFrame)
+        {
+            string path = Application.streamingAssetsPath + "/Ship.json";
+            File.WriteAllText(path, SaveStructure());
         }
 
         rb.isKinematic = !play;
@@ -99,9 +134,27 @@ public class Structure : MonoBehaviour
 
     //Write the structure to a simple JSON file with block types and positions, then when we load it back in all we need to do is instantiate the block type with the appropriate prefab,
     //the loading of the structure will probably be relegated to the building system
-    public void SaveStructure()
+    public string SaveStructure()
     {
+        Refresh();
+        string json = "{\n" +
+            "\"Structure\":[\n";
+        int i = 0;
+        foreach (var part in parts)
+        {
+            if (i != 0)
+                json += ",\n";
 
+            json += "{\n";
+            if (part.type == BlockType.Default || part.type == BlockType.Gyroscope || part.type == BlockType.Count)
+                json += part.ToJson();
+            if (part.type == BlockType.Thruster)
+                json += ((Thruster)part).ToJson();
+            json += "}";
+            i++;
+        }
+        json += "]\n}\n";
+        return json;
     }
 
     private void OnDrawGizmos()

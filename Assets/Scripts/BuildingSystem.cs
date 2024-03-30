@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SimpleJSON;
+using System.Linq;
 
 [System.Serializable]
 public enum BlockType
@@ -39,6 +42,17 @@ public class BuildingSystem : MonoBehaviour
 
     void Update()
     {
+        if (Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            LoadStructure();
+        }
+
+        if (Keyboard.current.tKey.wasPressedThisFrame)
+        {
+            GameObject structure = InitializeStructure();
+            Instantiate(m_parts[(int)BlockType.Default].partPrefab, structure.transform, false);
+        }
+
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
             Destroy(partPreview);
@@ -65,8 +79,9 @@ public class BuildingSystem : MonoBehaviour
         partPreview.SetActive(false);
         if (Physics.Raycast(ray, out hit, 100, raycastMask))
         {
-            Part part;
-            if (hit.collider.transform.TryGetComponent<Part>(out part))
+            Part part = hit.collider.transform.GetComponentInParent<Part>();
+            //if (hit.transform.parent.parent.TryGetComponent<Part>(out part))
+            if (part)
             {
                 var connectorPos = part.GetConnector(hit.normal);
                 partPreview.SetActive(true);
@@ -84,5 +99,47 @@ public class BuildingSystem : MonoBehaviour
             }
         }
 
+    }
+
+    public GameObject InitializeStructure()
+    {
+        GameObject structure = new GameObject("Structure");
+        structure.AddComponent<Structure>();
+        structure.layer = LayerMask.NameToLayer("Ignore Raycast");
+        var rb = structure.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.drag = 0.0f;
+        rb.useGravity = false;
+        return structure;
+    }
+
+    public void LoadStructure()
+    {
+        string path = Application.streamingAssetsPath + "/Ship.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            if (json.Length < 1) return;
+
+            var p = JSON.Parse(json);
+            var size = p["Structure"].Count;
+            GameObject structure = InitializeStructure();
+
+            for (int i = 0; i < size; i++)
+            {
+                var s = p["Structure"][i];
+                var type = (BlockType)s["BlockType"].AsInt;
+
+                GameObject obj = Instantiate(m_parts[(int)type].partPrefab, structure.transform, true);
+                if (type == BlockType.Default || type == BlockType.Count || type == BlockType.Gyroscope)
+                {
+                    obj.GetComponent<Part>().FromJson(s.ToString());
+                }
+                else if (type == BlockType.Thruster)
+                {
+                    obj.GetComponent<Thruster>().FromJson(s.ToString());
+                }
+            }
+        }
     }
 }
