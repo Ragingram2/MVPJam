@@ -4,7 +4,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SimpleJSON;
-using System.Linq;
+using static ControlMap;
 
 [System.Serializable]
 public enum BlockType
@@ -23,8 +23,10 @@ public class PartData
     public GameObject partPreviewPrefab;
 }
 
-public class BuildingSystem : MonoBehaviour
+public class BuildingSystem : MonoBehaviour, IBuildSystemActions
 {
+    [SerializeField]
+    private GameObject structurePrefab;
     [SerializeField]
     private List<PartData> m_parts = new List<PartData>();
     [SerializeField]
@@ -34,6 +36,25 @@ public class BuildingSystem : MonoBehaviour
     private GameObject partPreview;
     private BlockType currentType = BlockType.Default;
 
+    private ControlMap controls;
+    private Part hitPart = null;
+
+    public void OnEnable()
+    {
+        if (controls == null)
+        {
+            controls = new ControlMap();
+            controls.BuildSystem.SetCallbacks(this);
+        }
+
+        controls.BuildSystem.Enable();
+    }
+
+    public void OnDisable()
+    {
+        controls.BuildSystem.Disable();
+    }
+
     void Start()
     {
         partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
@@ -42,17 +63,6 @@ public class BuildingSystem : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current.rKey.wasPressedThisFrame)
-        {
-            LoadStructure();
-        }
-
-        if (Keyboard.current.tKey.wasPressedThisFrame)
-        {
-            GameObject structure = InitializeStructure();
-            Instantiate(m_parts[(int)BlockType.Default].partPrefab, structure.transform, false);
-        }
-
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
             Destroy(partPreview);
@@ -77,40 +87,54 @@ public class BuildingSystem : MonoBehaviour
 
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         partPreview.SetActive(false);
+        hitPart = null;
         if (Physics.Raycast(ray, out hit, 100, raycastMask))
         {
-            Part part = hit.collider.transform.GetComponentInParent<Part>();
-            //if (hit.transform.parent.parent.TryGetComponent<Part>(out part))
-            if (part)
+            hitPart = hit.collider.transform.GetComponentInParent<Part>();
+            if (hitPart)
             {
-                var connectorPos = part.GetConnector(hit.normal);
+                var pos = hitPart.GetConnector(hit.normal);
                 partPreview.SetActive(true);
-                partPreview.transform.position = connectorPos;
+                partPreview.transform.position = pos;
                 partPreview.transform.up = -hit.normal;
-                if (Mouse.current.leftButton.wasReleasedThisFrame)
-                {
-                    part.AttachPart(m_parts[(int)currentType].partPrefab, connectorPos, hit.normal);
-                }
-
-                if (Mouse.current.rightButton.wasReleasedThisFrame)
-                {
-                    part.RemovePart();
-                }
             }
         }
+    }
 
+    public void OnLeftClick(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed() && hitPart)
+        {
+            hitPart.AttachPart(m_parts[(int)currentType].partPrefab, hitPart.GetConnector(hit.normal), hit.normal);
+        }
+    }
+
+    public void OnRightClick(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed() && hitPart)
+        {
+            hitPart.RemovePart();
+        }
+    }
+
+    public void OnLoadStructure(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed())
+            LoadStructure();
+    }
+
+    public void OnInitNewStructure(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed())
+        {
+            GameObject structure = InitializeStructure();
+            Instantiate(m_parts[(int)BlockType.Default].partPrefab, structure.transform, false);
+        }
     }
 
     public GameObject InitializeStructure()
     {
-        GameObject structure = new GameObject("Structure");
-        structure.AddComponent<Structure>();
-        structure.layer = LayerMask.NameToLayer("Ignore Raycast");
-        var rb = structure.AddComponent<Rigidbody>();
-        rb.isKinematic = true;
-        rb.drag = 0.0f;
-        rb.useGravity = false;
-        return structure;
+        return Instantiate(structurePrefab, null);
     }
 
     public void LoadStructure()

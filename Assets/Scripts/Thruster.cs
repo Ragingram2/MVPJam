@@ -53,16 +53,16 @@ public class Thruster : Part
             orientation = ThrusterOrientation.Backward;
     }
 
-    public void ApplyForce(Rigidbody rb, Vector3 input, int thrusterCount, float globalForce)
+    public void ApplyForce(Rigidbody rb, Vector3 input, int thrusterCount, float globalForce, bool keepHeight)
     {
         var comp = Mathf.Max(0, Vector3.Dot(input, transform.up));
         var gravForce = Physics.gravity.magnitude;
         var COM = rb.transform.position + (transform.rotation * rb.centerOfMass);
         var dstFromCOM = (transform.position - COM).magnitude;
-        var forceAdjusted = ((overrideGlobal ? force : globalForce) / dstFromCOM);
-        var throttle = /*1.0f +*/ (comp * (thrusterCount / 10.0f));
-        displayValue = forceAdjusted;
-        rb.AddForceAtPosition(transform.up * /*gravForce **/ forceAdjusted * throttle, transform.position, ForceMode.Force);
+        //var forceAdjusted = ((overrideGlobal ? force : globalForce) / dstFromCOM);
+        float forceAdjusted = 1.0f/ dstFromCOM;
+        var throttle = (keepHeight ? 1.0f : 0.0f) + (comp * (thrusterCount / 10.0f));
+        rb.AddForceAtPosition(transform.up * gravForce * forceAdjusted * throttle, transform.position, ForceMode.Force);
     }
 
     public override string ToJson()
