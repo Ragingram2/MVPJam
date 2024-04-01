@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using SimpleJSON;
 using UnityEditor;
+using Cinemachine.Utility;
 
 [System.Serializable]
 public enum ThrusterOrientation
@@ -17,21 +18,29 @@ public enum ThrusterOrientation
     Count
 }
 
+[System.Serializable]
+public enum OrientationGroup
+{
+    X,
+    Y,
+    Z
+}
+
 public class Thruster : Part
 {
     public bool overrideGlobal = false;
     public float force = 1.0f;
     public ThrusterOrientation orientation;
-
     public GameObject exhaustMesh;
-    private Structure m_structure;
-    private float displayValue;
+    private Structure structure;
 
-    private bool applyingForce = false;
+    private float throttle = 0.0f;
+    private Rigidbody rb;
 
     private void Start()
     {
-        m_structure = GetComponentInParent<Structure>();
+        rb = GetComponentInParent<Rigidbody>();
+        structure = GetComponentInParent<Structure>();
         //Straight up devilry right here
         //Debug.Log($"{transform.up}"); //->(1.00,0.00,0.00)
         //Debug.Log($"up.x: {transform.up.x}"); //->1
@@ -39,48 +48,60 @@ public class Thruster : Part
         //Debug.Log($"up.x == 1:{transform.up.x == 1}");//->False
         //Debug.Log($"up.x > 0:{transform.up.x > 0}");//->True
 
-        if (Vector3.Dot(transform.up, Vector3.up) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, Vector3.up), 1.0f))
             orientation = ThrusterOrientation.Up;
-        if (Vector3.Dot(transform.up, -Vector3.up) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, -Vector3.up), 1.0f))
             orientation = ThrusterOrientation.Down;
 
-        if (Vector3.Dot(transform.up, Vector3.right) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, Vector3.right), 1.0f))
             orientation = ThrusterOrientation.Right;
-        if (Vector3.Dot(transform.up, -Vector3.right) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, -Vector3.right), 1.0f))
             orientation = ThrusterOrientation.Left;
 
-        if (Vector3.Dot(transform.up, Vector3.forward) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, Vector3.forward), 1.0f))
             orientation = ThrusterOrientation.Forward;
-        if (Vector3.Dot(transform.up, -Vector3.forward) == 1.0f)
+        if (Mathf.Approximately(Vector3.Dot(transform.up, -Vector3.forward), 1.0f))
             orientation = ThrusterOrientation.Backward;
     }
 
-    public void ApplyForce(Rigidbody rb, Vector3 input, float globalForce, float thrusterCount, float currentHeight, float targetHeight, bool keepHeight)
+    public void ApplyRCSForce(float deltaVel, float globalForce)
     {
-        var comp = Mathf.Max(0, Vector3.Dot(input, transform.up));
-        var COM = rb.transform.position + (transform.rotation * rb.centerOfMass);
-        var dstFromCOM = (transform.position - COM).magnitude;
-        //var forceAdjusted = ((overrideGlobal ? force : globalForce) / dstFromCOM);
-        //float forceAdjusted = 1.0f/ dstFromCOM;
+        //deltaVel = Mathf.Max(0.0f, deltaVel);
+        throttle = deltaVel;
 
-        var lerpStep = (currentHeight - targetHeight) * Time.deltaTime;
-        var throttle = (((keepHeight ? targetHeight - Mathf.Lerp(currentHeight, targetHeight, lerpStep) : comp) * globalForce) / thrusterCount);
-        displayValue = thrusterCount;
-        var forceToApply = transform.up * comp * globalForce * (1.0f / thrusterCount);
-        applyingForce = forceToApply.magnitude > 0;
-        rb.AddForceAtPosition(forceToApply, transform.position, ForceMode.Force);
+        float forceToApply = deltaVel * globalForce;
+        rb.AddForceAtPosition(transform.up * forceToApply, transform.position, ForceMode.Force);
+    }
+
+    public void ApplyForce(Vector3 input, float globalForce)
+    {
+        var angleToInput = Mathf.Max(0.0f,Vector3.Dot(input, transform.up));
+        //Debug.Log(angleToInput);
+        throttle = angleToInput;
+        float forceToApply = angleToInput * (overrideGlobal ? force : globalForce);
+        rb.AddForceAtPosition(transform.up * forceToApply, transform.position, ForceMode.Force);
+    }
+
+    public void ResetThruster()
+    {
+        throttle = 0;
     }
 
     private void Update()
     {
         if (exhaustMesh)
-            exhaustMesh.SetActive(applyingForce);
+        {
+            var scal = exhaustMesh.transform.localScale;
+            scal.y = Mathf.Clamp(((throttle / 1.0f) * 3.0f) + .5f, .5f, 3f);
+            exhaustMesh.transform.localScale = scal;
+        }
     }
 
+    private float displayValue;
     private void OnDrawGizmos()
     {
-        //Handles.Label(transform.position, displayValue.ToString());
-        Handles.Label(transform.position, transform.up.ToString());
+        //Handles.Label(transform.position, _throttle.ToString());
+        Handles.Label(transform.position, displayValue.ToString());
     }
 
     public override string ToJson()
@@ -97,7 +118,7 @@ public class Thruster : Part
     {
         base.FromJson(json);
         var p = JSON.Parse(json);
-        overrideGlobal = p["OrverrideGlobal"].AsBool;
+        overrideGlobal = p["OverrideGlobal"].AsBool;
         force = p["Force"].AsFloat;
     }
 }

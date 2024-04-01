@@ -1,3 +1,6 @@
+using NaughtyAttributes;
+using SimpleJSON;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -10,39 +13,21 @@ using UnityEngine.InputSystem;
 using static ControlMap;
 
 
-//public class PartInfo
-//{
-//    public Vector3 position;
-//    public Quaternion rotation;
-//    public BlockType type;
-//    public bool overrideGlobal;
-//    public float force;
-
-//    public string ToJson()
-//    {
-//        string json = "";
-//        json += JsonUtility.ToJson(position) + ", \n";
-//        json += JsonUtility.ToJson(rotation) + ", \n";
-//        json += $"\"BlockType\":{(int)type}\n";
-//        json += $"\"OverrideGlobal\":{(int)type}";
-//        return json;
-//    }
-//}
-
 public class Structure : MonoBehaviour, IStructureActions, IShipActions
 {
     [SerializeField]
     private float globalForce = 1.0f;
     [SerializeField]
-    private bool dampners = true;
+    public PIDController pidX = new PIDController();
     [SerializeField]
-    private bool keepHeight = true;
+    public PIDController pidY = new PIDController();
     [SerializeField]
-    private float targetHeight;
-    private bool play = false;
+    public PIDController pidZ = new PIDController();
+
+    public bool play = false;
     private Vector3 startPos;
     private Quaternion startRot;
-    private Vector3 inputVec;
+    public Vector3 inputVec;
     private Rigidbody rb;
     private Dictionary<ThrusterOrientation, int> thrusterCounts = new Dictionary<ThrusterOrientation, int>();
     private List<Part> parts = new List<Part>();
@@ -57,29 +42,24 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         }
         EnableStructureControls();
     }
-
     public void OnDisable()
     {
         DisableStructureControls();
     }
-
     public void EnableStructureControls()
     {
         controls.Structure.SetCallbacks(this);
         controls.Structure.Enable();
     }
-
     public void DisableStructureControls()
     {
         controls.Structure.Disable();
     }
-
     public void EnableShipControls()
     {
         controls.Ship.SetCallbacks(this);
         controls.Ship.Enable();
     }
-
     public void DisableShipControls()
     {
         controls.Ship.Disable();
@@ -90,6 +70,7 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         startPos = transform.position;
         startRot = transform.rotation;
         rb = GetComponent<Rigidbody>();
+        //rb.maxLinearVelocity = 20.0f;
         Refresh();
     }
 
@@ -99,9 +80,39 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         {
             foreach (var thruster in thrusters)
             {
-                thruster.ApplyForce(rb, inputVec, globalForce, thrusterCounts[thruster.orientation], transform.position.y, targetHeight, keepHeight);
+                thruster.ApplyForce(inputVec, globalForce);
             }
+
+            //Debug.Log("==============================");
+            //Debug.Log($"Velocity before RCS: {rb.velocity}");
+            RCS(pidX, 0, transform.right, ThrusterOrientation.Left);
+            RCS(pidY, 0, transform.up, ThrusterOrientation.Up);
+            RCS(pidZ, 0, transform.forward, ThrusterOrientation.Forward);
+
+            var velocity = rb.velocity;
+            if (Mathf.Abs(rb.velocity.x) <= 0.1f)
+                velocity.x = 0.0f;
+            if (Mathf.Abs(rb.velocity.y) <= 0.1f)
+                velocity.x = 0.0f;
+            if (Mathf.Abs(rb.velocity.z) <= 0.1f)
+                velocity.x = 0.0f;
+
+            rb.velocity = velocity;
         }
+    }
+
+    void RCS(PIDController pid, float targetVel, Vector3 forceAxis, ThrusterOrientation orientation)
+    {
+        var delta = 0.0f;
+        if (orientation == ThrusterOrientation.Right || orientation == ThrusterOrientation.Left)
+            delta = pid.Update(targetVel, rb.velocity.x, Time.fixedDeltaTime);
+        else if (orientation == ThrusterOrientation.Up || orientation == ThrusterOrientation.Down)
+            delta = pid.Update(targetVel, rb.velocity.y, Time.fixedDeltaTime);
+        else if (orientation == ThrusterOrientation.Forward || orientation == ThrusterOrientation.Backward)
+            delta = pid.Update(targetVel, rb.velocity.z, Time.fixedDeltaTime);
+
+        if (Mathf.Abs(delta) <= 0.5f) return;
+        rb.AddForce(forceAxis * delta * globalForce, ForceMode.Force);
     }
 
     void Update()
@@ -120,12 +131,10 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         if (context.performed)
             inputVec = context.ReadValue<Vector3>();
     }
-
     public void OnLook(InputAction.CallbackContext context)
     {
 
     }
-
     public void OnSaveStructure(InputAction.CallbackContext context)
     {
         if (play) return;
@@ -136,7 +145,6 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
             File.WriteAllText(path, SaveStructure());
         }
     }
-
     public void OnTogglePlay(InputAction.CallbackContext context)
     {
         if (context.action.IsPressed())
@@ -150,7 +158,6 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
                 DisableShipControls();
         }
     }
-
     public void OnDeleteStructure(InputAction.CallbackContext context)
     {
         if (play) return;
@@ -160,7 +167,6 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
             Destroy(gameObject);
         }
     }
-
     public void Refresh()
     {
         parts = GetComponentsInChildren<Part>().ToList();
@@ -179,7 +185,11 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
         foreach (var thruster in thrusters)
         {
             thrusterCounts[thruster.orientation]++;
+            thruster.ResetThruster();
         }
+        pidX.Reset();
+        pidY.Reset();
+        pidZ.Reset();
     }
 
     public string SaveStructure()
@@ -197,11 +207,17 @@ public class Structure : MonoBehaviour, IStructureActions, IShipActions
             if (part.type == BlockType.Default || part.type == BlockType.Gyroscope || part.type == BlockType.Count)
                 json += part.ToJson();
             if (part.type == BlockType.Thruster)
+            {
                 json += ((Thruster)part).ToJson();
+            }
             json += "}";
             i++;
         }
-        json += "]\n}\n";
+        json += "],\n";
+        json += pidX.ToJson() + "\n";
+        json += pidY.ToJson() + "\n";
+        json += pidZ.ToJson() + "\n";
+        json += "}\n";
         return json;
     }
 

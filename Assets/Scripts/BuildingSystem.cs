@@ -35,6 +35,7 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
     private RaycastHit hit;
     private GameObject partPreview;
     private BlockType currentType = BlockType.Default;
+    private GameObject structure;
 
     private ControlMap controls;
     private Part hitPart = null;
@@ -85,18 +86,21 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
             partPreview.SetActive(false);
         }
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        partPreview.SetActive(false);
-        hitPart = null;
-        if (Physics.Raycast(ray, out hit, 100, raycastMask))
+        if (structure && !structure.GetComponent<Structure>().play)
         {
-            hitPart = hit.collider.transform.GetComponentInParent<Part>();
-            if (hitPart)
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            partPreview.SetActive(false);
+            hitPart = null;
+            if (Physics.Raycast(ray, out hit, 100, raycastMask))
             {
-                var pos = hitPart.GetConnector(hit.normal);
-                partPreview.SetActive(true);
-                partPreview.transform.position = pos;
-                partPreview.transform.up = -hit.normal;
+                hitPart = hit.collider.transform.GetComponentInParent<Part>();
+                if (hitPart)
+                {
+                    var pos = hitPart.GetConnector(hit.normal);
+                    partPreview.SetActive(true);
+                    partPreview.transform.position = pos;
+                    partPreview.transform.up = -hit.normal;
+                }
             }
         }
     }
@@ -127,13 +131,18 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
     {
         if (context.action.IsPressed())
         {
-            GameObject structure = InitializeStructure();
+            structure = InitializeStructure();
             Instantiate(m_parts[(int)BlockType.Default].partPrefab, structure.transform, false);
         }
     }
 
     public GameObject InitializeStructure()
     {
+        if (structure != null)
+        {
+            Destroy(structure);
+        }
+
         return Instantiate(structurePrefab, null);
     }
 
@@ -147,7 +156,17 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
 
             var p = JSON.Parse(json);
             var size = p["Structure"].Count;
-            GameObject structure = InitializeStructure();
+            if(structure != null)
+            {
+                Destroy(structure);
+            }
+            structure = InitializeStructure();
+
+            //Might wanna end up making a list of PID controllers
+            var structureComp = structure.GetComponent<Structure>();
+            structureComp.pidX.FromJson(p[structureComp.pidX.name].ToString());
+            structureComp.pidY.FromJson(p[structureComp.pidY.name].ToString());
+            structureComp.pidZ.FromJson(p[structureComp.pidZ.name].ToString());
 
             for (int i = 0; i < size; i++)
             {
