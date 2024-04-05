@@ -173,6 +173,15 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""DeleteStructure"",
+                    ""type"": ""Button"",
+                    ""id"": ""4a8a84ec-8a40-4199-a324-dd2f3fc3850b"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Press(behavior=1)"",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""RightClick"",
                     ""type"": ""Button"",
                     ""id"": ""b88ba75d-5622-453d-b4b7-d43b2a642f57"",
@@ -194,6 +203,15 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
                     ""name"": ""InitNewStructure"",
                     ""type"": ""Button"",
                     ""id"": ""e33f170f-8251-4381-9f78-c14f1700b146"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Press(behavior=1)"",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SaveStructure"",
+                    ""type"": ""Button"",
+                    ""id"": ""04b50a69-e389-40cd-832c-1cb396fb61d8"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": ""Press(behavior=1)"",
@@ -244,45 +262,10 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
                     ""action"": ""InitNewStructure"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
-                }
-            ]
-        },
-        {
-            ""name"": ""Structure"",
-            ""id"": ""e5472073-aa9c-4bf4-8f69-09237b5611a1"",
-            ""actions"": [
-                {
-                    ""name"": ""DeleteStructure"",
-                    ""type"": ""Button"",
-                    ""id"": ""570c958e-ca8e-49e3-9198-2dfac414a399"",
-                    ""expectedControlType"": ""Button"",
-                    ""processors"": """",
-                    ""interactions"": ""Press(behavior=1)"",
-                    ""initialStateCheck"": false
                 },
-                {
-                    ""name"": ""TogglePlay"",
-                    ""type"": ""Button"",
-                    ""id"": ""83f5cd47-e3e8-43ec-94c7-d992ebea796c"",
-                    ""expectedControlType"": ""Button"",
-                    ""processors"": """",
-                    ""interactions"": ""Press(behavior=1)"",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""SaveStructure"",
-                    ""type"": ""Button"",
-                    ""id"": ""ea357091-41bd-4798-a194-7f0d76bbba9e"",
-                    ""expectedControlType"": ""Button"",
-                    ""processors"": """",
-                    ""interactions"": ""Press(behavior=1)"",
-                    ""initialStateCheck"": false
-                }
-            ],
-            ""bindings"": [
                 {
                     ""name"": """",
-                    ""id"": ""3410fdc5-9ec0-4dd7-8f3f-969c82569dda"",
+                    ""id"": ""5d6cb5d5-18bf-4da0-8958-f8fd281e4b57"",
                     ""path"": ""<Keyboard>/f"",
                     ""interactions"": """",
                     ""processors"": """",
@@ -293,23 +276,40 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""dac4a463-a674-413e-939d-9c56d5cebae7"",
+                    ""path"": ""<Keyboard>/delete"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard"",
+                    ""action"": ""DeleteStructure"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
+        },
+        {
+            ""name"": ""Structure"",
+            ""id"": ""e5472073-aa9c-4bf4-8f69-09237b5611a1"",
+            ""actions"": [
+                {
+                    ""name"": ""TogglePlay"",
+                    ""type"": ""Button"",
+                    ""id"": ""83f5cd47-e3e8-43ec-94c7-d992ebea796c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Press(behavior=1)"",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
                     ""id"": ""bebf1e2f-3fc2-4d21-877d-3329d670733e"",
                     ""path"": ""<Keyboard>/g"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard"",
                     ""action"": ""TogglePlay"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""86b2a31b-0378-463a-b826-5a9802b5f4a6"",
-                    ""path"": ""<Keyboard>/delete"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": ""Keyboard"",
-                    ""action"": ""DeleteStructure"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -342,14 +342,14 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
         // BuildSystem
         m_BuildSystem = asset.FindActionMap("BuildSystem", throwIfNotFound: true);
         m_BuildSystem_LeftClick = m_BuildSystem.FindAction("LeftClick", throwIfNotFound: true);
+        m_BuildSystem_DeleteStructure = m_BuildSystem.FindAction("DeleteStructure", throwIfNotFound: true);
         m_BuildSystem_RightClick = m_BuildSystem.FindAction("RightClick", throwIfNotFound: true);
         m_BuildSystem_LoadStructure = m_BuildSystem.FindAction("LoadStructure", throwIfNotFound: true);
         m_BuildSystem_InitNewStructure = m_BuildSystem.FindAction("InitNewStructure", throwIfNotFound: true);
+        m_BuildSystem_SaveStructure = m_BuildSystem.FindAction("SaveStructure", throwIfNotFound: true);
         // Structure
         m_Structure = asset.FindActionMap("Structure", throwIfNotFound: true);
-        m_Structure_DeleteStructure = m_Structure.FindAction("DeleteStructure", throwIfNotFound: true);
         m_Structure_TogglePlay = m_Structure.FindAction("TogglePlay", throwIfNotFound: true);
-        m_Structure_SaveStructure = m_Structure.FindAction("SaveStructure", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -466,17 +466,21 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_BuildSystem;
     private List<IBuildSystemActions> m_BuildSystemActionsCallbackInterfaces = new List<IBuildSystemActions>();
     private readonly InputAction m_BuildSystem_LeftClick;
+    private readonly InputAction m_BuildSystem_DeleteStructure;
     private readonly InputAction m_BuildSystem_RightClick;
     private readonly InputAction m_BuildSystem_LoadStructure;
     private readonly InputAction m_BuildSystem_InitNewStructure;
+    private readonly InputAction m_BuildSystem_SaveStructure;
     public struct BuildSystemActions
     {
         private @ControlMap m_Wrapper;
         public BuildSystemActions(@ControlMap wrapper) { m_Wrapper = wrapper; }
         public InputAction @LeftClick => m_Wrapper.m_BuildSystem_LeftClick;
+        public InputAction @DeleteStructure => m_Wrapper.m_BuildSystem_DeleteStructure;
         public InputAction @RightClick => m_Wrapper.m_BuildSystem_RightClick;
         public InputAction @LoadStructure => m_Wrapper.m_BuildSystem_LoadStructure;
         public InputAction @InitNewStructure => m_Wrapper.m_BuildSystem_InitNewStructure;
+        public InputAction @SaveStructure => m_Wrapper.m_BuildSystem_SaveStructure;
         public InputActionMap Get() { return m_Wrapper.m_BuildSystem; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -489,6 +493,9 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
             @LeftClick.started += instance.OnLeftClick;
             @LeftClick.performed += instance.OnLeftClick;
             @LeftClick.canceled += instance.OnLeftClick;
+            @DeleteStructure.started += instance.OnDeleteStructure;
+            @DeleteStructure.performed += instance.OnDeleteStructure;
+            @DeleteStructure.canceled += instance.OnDeleteStructure;
             @RightClick.started += instance.OnRightClick;
             @RightClick.performed += instance.OnRightClick;
             @RightClick.canceled += instance.OnRightClick;
@@ -498,6 +505,9 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
             @InitNewStructure.started += instance.OnInitNewStructure;
             @InitNewStructure.performed += instance.OnInitNewStructure;
             @InitNewStructure.canceled += instance.OnInitNewStructure;
+            @SaveStructure.started += instance.OnSaveStructure;
+            @SaveStructure.performed += instance.OnSaveStructure;
+            @SaveStructure.canceled += instance.OnSaveStructure;
         }
 
         private void UnregisterCallbacks(IBuildSystemActions instance)
@@ -505,6 +515,9 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
             @LeftClick.started -= instance.OnLeftClick;
             @LeftClick.performed -= instance.OnLeftClick;
             @LeftClick.canceled -= instance.OnLeftClick;
+            @DeleteStructure.started -= instance.OnDeleteStructure;
+            @DeleteStructure.performed -= instance.OnDeleteStructure;
+            @DeleteStructure.canceled -= instance.OnDeleteStructure;
             @RightClick.started -= instance.OnRightClick;
             @RightClick.performed -= instance.OnRightClick;
             @RightClick.canceled -= instance.OnRightClick;
@@ -514,6 +527,9 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
             @InitNewStructure.started -= instance.OnInitNewStructure;
             @InitNewStructure.performed -= instance.OnInitNewStructure;
             @InitNewStructure.canceled -= instance.OnInitNewStructure;
+            @SaveStructure.started -= instance.OnSaveStructure;
+            @SaveStructure.performed -= instance.OnSaveStructure;
+            @SaveStructure.canceled -= instance.OnSaveStructure;
         }
 
         public void RemoveCallbacks(IBuildSystemActions instance)
@@ -535,16 +551,12 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
     // Structure
     private readonly InputActionMap m_Structure;
     private List<IStructureActions> m_StructureActionsCallbackInterfaces = new List<IStructureActions>();
-    private readonly InputAction m_Structure_DeleteStructure;
     private readonly InputAction m_Structure_TogglePlay;
-    private readonly InputAction m_Structure_SaveStructure;
     public struct StructureActions
     {
         private @ControlMap m_Wrapper;
         public StructureActions(@ControlMap wrapper) { m_Wrapper = wrapper; }
-        public InputAction @DeleteStructure => m_Wrapper.m_Structure_DeleteStructure;
         public InputAction @TogglePlay => m_Wrapper.m_Structure_TogglePlay;
-        public InputAction @SaveStructure => m_Wrapper.m_Structure_SaveStructure;
         public InputActionMap Get() { return m_Wrapper.m_Structure; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -554,28 +566,16 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_StructureActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_StructureActionsCallbackInterfaces.Add(instance);
-            @DeleteStructure.started += instance.OnDeleteStructure;
-            @DeleteStructure.performed += instance.OnDeleteStructure;
-            @DeleteStructure.canceled += instance.OnDeleteStructure;
             @TogglePlay.started += instance.OnTogglePlay;
             @TogglePlay.performed += instance.OnTogglePlay;
             @TogglePlay.canceled += instance.OnTogglePlay;
-            @SaveStructure.started += instance.OnSaveStructure;
-            @SaveStructure.performed += instance.OnSaveStructure;
-            @SaveStructure.canceled += instance.OnSaveStructure;
         }
 
         private void UnregisterCallbacks(IStructureActions instance)
         {
-            @DeleteStructure.started -= instance.OnDeleteStructure;
-            @DeleteStructure.performed -= instance.OnDeleteStructure;
-            @DeleteStructure.canceled -= instance.OnDeleteStructure;
             @TogglePlay.started -= instance.OnTogglePlay;
             @TogglePlay.performed -= instance.OnTogglePlay;
             @TogglePlay.canceled -= instance.OnTogglePlay;
-            @SaveStructure.started -= instance.OnSaveStructure;
-            @SaveStructure.performed -= instance.OnSaveStructure;
-            @SaveStructure.canceled -= instance.OnSaveStructure;
         }
 
         public void RemoveCallbacks(IStructureActions instance)
@@ -610,14 +610,14 @@ public partial class @ControlMap: IInputActionCollection2, IDisposable
     public interface IBuildSystemActions
     {
         void OnLeftClick(InputAction.CallbackContext context);
+        void OnDeleteStructure(InputAction.CallbackContext context);
         void OnRightClick(InputAction.CallbackContext context);
         void OnLoadStructure(InputAction.CallbackContext context);
         void OnInitNewStructure(InputAction.CallbackContext context);
+        void OnSaveStructure(InputAction.CallbackContext context);
     }
     public interface IStructureActions
     {
-        void OnDeleteStructure(InputAction.CallbackContext context);
         void OnTogglePlay(InputAction.CallbackContext context);
-        void OnSaveStructure(InputAction.CallbackContext context);
     }
 }

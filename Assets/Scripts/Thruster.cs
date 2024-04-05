@@ -5,6 +5,7 @@ using UnityEngine;
 using SimpleJSON;
 using UnityEditor;
 using Cinemachine.Utility;
+using UnityEngine.Windows;
 
 [System.Serializable]
 public enum ThrusterOrientation
@@ -18,25 +19,19 @@ public enum ThrusterOrientation
     Count
 }
 
-[System.Serializable]
-public enum OrientationGroup
-{
-    X,
-    Y,
-    Z
-}
-
 public class Thruster : Part
 {
     public bool overrideGlobal = false;
     public float force = 1.0f;
     public ThrusterOrientation orientation;
     public GameObject exhaustMesh;
-    private Structure structure;
 
     private float throttle = 0.0f;
     private Rigidbody rb;
+    private Structure structure;
+    private PIDController controller = new PIDController();
 
+    private Vector3 displayVec;
     private void Start()
     {
         rb = GetComponentInParent<Rigidbody>();
@@ -64,27 +59,23 @@ public class Thruster : Part
             orientation = ThrusterOrientation.Backward;
     }
 
-    public void ApplyRCSForce(float deltaVel, float globalForce)
+    public void ThrusterUpdate(float p, float i, float d)
     {
-        //deltaVel = Mathf.Max(0.0f, deltaVel);
-        throttle = deltaVel;
+        controller.proportionalGain = p;
+        controller.integralGain = i;
+        controller.derivativeGain = d;
 
-        float forceToApply = deltaVel * globalForce;
-        rb.AddForceAtPosition(transform.up * forceToApply, transform.position, ForceMode.Force);
-    }
-
-    public void ApplyForce(Vector3 input, float globalForce)
-    {
-        var angleToInput = Mathf.Max(0.0f,Vector3.Dot(input, transform.up));
-        //Debug.Log(angleToInput);
-        throttle = angleToInput;
-        float forceToApply = angleToInput * (overrideGlobal ? force : globalForce);
-        rb.AddForceAtPosition(transform.up * forceToApply, transform.position, ForceMode.Force);
+        controller.SetRange(-10.0f, 10.0f);
+        var targetVel = Vector3.Project(rb.velocity, transform.up);
+        displayVec = targetVel;
+        throttle = controller.Update(Vector3.zero, targetVel, Time.fixedDeltaTime).magnitude;
+        rb.AddForceAtPosition(transform.up * structure.globalForce * throttle, transform.position, ForceMode.Force);
     }
 
     public void ResetThruster()
     {
         throttle = 0;
+        controller.Reset();
     }
 
     private void Update()
@@ -92,22 +83,23 @@ public class Thruster : Part
         if (exhaustMesh)
         {
             var scal = exhaustMesh.transform.localScale;
-            scal.y = Mathf.Clamp(((throttle / 1.0f) * 3.0f) + .5f, .5f, 3f);
+            scal.y = Mathf.Clamp(throttle, 0.5f, 3.0f);
             exhaustMesh.transform.localScale = scal;
         }
     }
 
-    private float displayValue;
     private void OnDrawGizmos()
     {
-        //Handles.Label(transform.position, _throttle.ToString());
-        Handles.Label(transform.position, displayValue.ToString());
+        //Handles.Label(transform.position, throttle.ToString());
+        Handles.Label(transform.position, displayVec.ToString());
+        Handles.Label(transform.position - transform.up, transform.up.ToString());
+        if (rb)
+            Handles.Label(transform.position - (transform.up * 2.0f), rb.velocity.ToString());
     }
 
     public override string ToJson()
     {
         string json = "";
-
         json += $",\"OverrideGlobal\":{overrideGlobal},\n";
         json += $"\"Force\":{force}";
 

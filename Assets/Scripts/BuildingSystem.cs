@@ -5,6 +5,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SimpleJSON;
 using static ControlMap;
+using UnityEngine.Rendering;
+using System.Linq;
 
 [System.Serializable]
 public enum BlockType
@@ -28,38 +30,28 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
     [SerializeField]
     private GameObject structurePrefab;
     [SerializeField]
-    private List<PartData> m_parts = new List<PartData>();
+    private List<PartData> parts = new List<PartData>();
     [SerializeField]
     private LayerMask raycastMask;
 
     private RaycastHit hit;
     private GameObject partPreview;
     private BlockType currentType = BlockType.Default;
-    private GameObject structure;
+    private static GameObject structureGO;
+    private static Structure currentStructure => structureGO ? structureGO.GetComponent<Structure>() : null;
 
     private ControlMap controls;
     private Part hitPart = null;
 
-    public void OnEnable()
-    {
-        if (controls == null)
-        {
-            controls = new ControlMap();
-            controls.BuildSystem.SetCallbacks(this);
-        }
-
-        controls.BuildSystem.Enable();
-    }
-
-    public void OnDisable()
-    {
-        controls.BuildSystem.Disable();
-    }
+    public static string shipToLoadPath = "/Ship.json";
+    public static List<string> shipFilePaths = new List<string>();
 
     void Start()
-    {
-        partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
+    { 
+        partPreview = Instantiate(parts[(int)currentType].partPreviewPrefab);
         partPreview.SetActive(false);
+
+        shipFilePaths = Directory.EnumerateFiles(Application.streamingAssetsPath).ToList();
     }
 
     void Update()
@@ -68,25 +60,27 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
         {
             Destroy(partPreview);
             currentType = BlockType.Default;
-            partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
+            partPreview = Instantiate(parts[(int)currentType].partPreviewPrefab);
             partPreview.SetActive(false);
         }
         else if (Keyboard.current.digit2Key.wasPressedThisFrame)
         {
             Destroy(partPreview);
             currentType = BlockType.Thruster;
-            partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
+            partPreview = Instantiate(parts[(int)currentType].partPreviewPrefab);
             partPreview.SetActive(false);
         }
         else if (Keyboard.current.digit3Key.wasPressedThisFrame)
         {
             Destroy(partPreview);
             currentType = BlockType.Gyroscope;
-            partPreview = Instantiate(m_parts[(int)currentType].partPreviewPrefab);
+            partPreview = Instantiate(parts[(int)currentType].partPreviewPrefab);
             partPreview.SetActive(false);
         }
 
-        if (structure && !structure.GetComponent<Structure>().play)
+        if (!currentStructure) return;
+
+        if (!currentStructure.play)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             partPreview.SetActive(false);
@@ -105,50 +99,71 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
         }
     }
 
-    public void OnLeftClick(InputAction.CallbackContext context)
-    {
-        if (context.action.IsPressed() && hitPart)
-        {
-            hitPart.AttachPart(m_parts[(int)currentType].partPrefab, hitPart.GetConnector(hit.normal), hit.normal);
-        }
-    }
-
-    public void OnRightClick(InputAction.CallbackContext context)
-    {
-        if (context.action.IsPressed() && hitPart)
-        {
-            hitPart.RemovePart();
-        }
-    }
-
-    public void OnLoadStructure(InputAction.CallbackContext context)
-    {
-        if (context.action.IsPressed())
-            LoadStructure();
-    }
-
-    public void OnInitNewStructure(InputAction.CallbackContext context)
-    {
-        if (context.action.IsPressed())
-        {
-            structure = InitializeStructure();
-            Instantiate(m_parts[(int)BlockType.Default].partPrefab, structure.transform, false);
-        }
-    }
-
     public GameObject InitializeStructure()
     {
-        if (structure != null)
+        if (structureGO != null)
         {
-            Destroy(structure);
+            Destroy(structureGO);
         }
 
-        return Instantiate(structurePrefab, null);
+        return structureGO = Instantiate(structurePrefab, null);
     }
 
-    public void LoadStructure()
+    public void NewShip()
     {
-        string path = Application.streamingAssetsPath + "/Ship.json";
+        structureGO = InitializeStructure();
+        Instantiate(parts[(int)BlockType.Default].partPrefab, structureGO.transform, false);
+    }
+
+    public void SaveShip(string shipName)
+    {
+        SaveStructure(shipName);
+    }
+
+    public void LoadShip()
+    {
+        LoadStructure(InitializeStructure(), parts);
+    }
+
+    public static string SaveStructure(string shipName)
+    {
+        currentStructure.Refresh();
+        string json = "{\n";
+        json += "\"Structure\":[\n";
+
+        int i = 0;
+        List<Part> parts = structureGO.GetComponentsInChildren<Part>().ToList();
+        foreach (var part in parts)
+        {
+            if (i != 0)
+                json += ",\n";
+
+            json += "{\n";
+            if (part.type == BlockType.Default || part.type == BlockType.Gyroscope || part.type == BlockType.Count)
+                json += part.ToJson();
+            if (part.type == BlockType.Thruster)
+            {
+                json += ((Thruster)part).ToJson();
+            }
+            json += "}";
+            i++;
+        }
+
+        json += "],\n";
+        json += $"\"ProportionalGain\":{currentStructure.proportionalGain},\n";
+        json += $"\"IntegralGain\":{currentStructure.intergralGain},\n";
+        json += $"\"DerivativeGain\":{currentStructure.derivativeGain}\n";
+        json += "}\n";
+
+        string path = Application.streamingAssetsPath + $"/{shipName}.json";
+        File.WriteAllText(path, json.ToString());
+        shipFilePaths = Directory.EnumerateFiles(Application.streamingAssetsPath).ToList();
+        return json;
+    }
+
+    public static void LoadStructure(GameObject structure, List<PartData> parts)
+    {
+        string path = Application.streamingAssetsPath + shipToLoadPath;
         if (File.Exists(path))
         {
             string json = File.ReadAllText(path);
@@ -156,24 +171,15 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
 
             var p = JSON.Parse(json);
             var size = p["Structure"].Count;
-            if(structure != null)
-            {
-                Destroy(structure);
-            }
-            structure = InitializeStructure();
 
-            //Might wanna end up making a list of PID controllers
-            var structureComp = structure.GetComponent<Structure>();
-            structureComp.pidX.FromJson(p[structureComp.pidX.name].ToString());
-            structureComp.pidY.FromJson(p[structureComp.pidY.name].ToString());
-            structureComp.pidZ.FromJson(p[structureComp.pidZ.name].ToString());
+            var structObj = currentStructure;
 
             for (int i = 0; i < size; i++)
             {
                 var s = p["Structure"][i];
                 var type = (BlockType)s["BlockType"].AsInt;
 
-                GameObject obj = Instantiate(m_parts[(int)type].partPrefab, structure.transform, true);
+                GameObject obj = Instantiate(parts[(int)type].partPrefab, structObj.transform, true);
                 if (type == BlockType.Default || type == BlockType.Count || type == BlockType.Gyroscope)
                 {
                     obj.GetComponent<Part>().FromJson(s.ToString());
@@ -185,4 +191,66 @@ public class BuildingSystem : MonoBehaviour, IBuildSystemActions
             }
         }
     }
+
+    #region Input
+    public void OnEnable()
+    {
+        if (controls == null)
+        {
+            controls = new ControlMap();
+            controls.BuildSystem.SetCallbacks(this);
+        }
+
+        controls.BuildSystem.Enable();
+    }
+    public void OnDisable()
+    {
+        controls.BuildSystem.Disable();
+    }
+    public void OnLeftClick(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed() && hitPart)
+        {
+            hitPart.AttachPart(parts[(int)currentType].partPrefab, hitPart.GetConnector(hit.normal), hit.normal);
+        }
+    }
+    public void OnRightClick(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed() && hitPart)
+        {
+            hitPart.RemovePart();
+        }
+    }
+    public void OnSaveStructure(InputAction.CallbackContext context)
+    {
+        if (currentStructure && currentStructure.play) return;
+
+        if (context.action.IsPressed())
+        {
+            SaveStructure("Ship");
+        }
+    }
+    public void OnLoadStructure(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed())
+            LoadStructure(InitializeStructure(), parts);
+    }
+    public void OnDeleteStructure(InputAction.CallbackContext context)
+    {
+        if (currentStructure && currentStructure.play) return;
+
+        if (context.action.IsPressed())
+        {
+            Destroy(structureGO);
+        }
+    }
+    public void OnInitNewStructure(InputAction.CallbackContext context)
+    {
+        if (context.action.IsPressed())
+        {
+            structureGO = InitializeStructure();
+            Instantiate(parts[(int)BlockType.Default].partPrefab, structureGO.transform, false);
+        }
+    }
+    #endregion
 }

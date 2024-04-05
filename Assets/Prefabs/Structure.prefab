@@ -45,22 +45,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3799e2ee9376a446b7a81215f2ec799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  globalForce: 20
-  pidX:
-    name: PIDXAxis
-    proportionalGain: 0
-    integralGain: 0
-    derivativeGain: 0
-  pidY:
-    name: PIDYAxis
-    proportionalGain: 0
-    integralGain: 0
-    derivativeGain: 0
-  pidZ:
-    name: PIDZAxis
-    proportionalGain: 0
-    integralGain: 0
-    derivativeGain: 0
+  globalForce: 10
+  proportionalGain: 1
+  intergralGain: 0.1
+  derivativeGain: 0.1
+  play: 0
   inputVec: {x: 0, y: 0, z: 0}
 --- !u!54 &8126809129576466056
 Rigidbody:

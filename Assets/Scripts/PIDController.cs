@@ -1,3 +1,4 @@
+using NaughtyAttributes;
 using SimpleJSON;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,49 +9,62 @@ public class PIDController
 {
     [SerializeField]
     public string name;
-    [Range(-50.0f, 50.0f)]
     public float proportionalGain, integralGain, derivativeGain;
+    public Vector2 range = new Vector2(-10.0f, 10.0f);
 
-    private float _p, _i, _d;
-    private float _previousError = 0.0f;
+    private float p, i, d;
+    private Vector3 pVec, iVec, dVec;
+    private Vector3 previousErrorVec = Vector3.zero;
+    private float previousError = 0.0f;
 
+    public Vector3 Update(Vector3 target, Vector3 current, float dt)
+    {
+        Vector3 currentError = target - current;
+        pVec = currentError;
+        iVec = Vector3.Min(Vector3.Max((iVec + pVec) * dt, Vector3.one * range.x), Vector3.one * range.y);
+
+        if (previousErrorVec == Vector3.zero)
+            dVec = (pVec - previousErrorVec) / dt;
+        previousErrorVec = currentError;
+
+        var result = (pVec * proportionalGain) + (iVec * integralGain) + (dVec * derivativeGain);
+        result = Vector3.Min(Vector3.Max(result, Vector3.one * range.x), Vector3.one * range.y);
+        return result;
+    }
     public float Update(float target, float current, float dt)
     {
         float currentError = target - current;
-        _p = currentError;
-        _i += _p * dt;
-        if (_previousError != 0.0f)
-            _d = (_p - _previousError) / dt;
-        _previousError = currentError;
+        p = currentError;
+        i = Mathf.Clamp(i + p * dt, range.x, range.y);
 
-        var result = (_p * proportionalGain) + (_i * integralGain) + (_d * derivativeGain);
-        result = Mathf.Clamp(result, -1.0f, 1.0f);
+        if (previousError != 0.0f)
+            d = (p - previousError) / dt;
+        previousError = currentError;
+
+        var result = (p * proportionalGain) + (i * integralGain) + (d * derivativeGain);
+        result = Mathf.Clamp(result, range.x, range.y);
         return result;
+    }
+
+    public void SetRange(float min, float max)
+    {
+        range = new Vector2(min, max);
+    }
+
+    private void SetRange(Vector2 range)
+    {
+        this.range = range;
     }
 
     public void Reset()
     {
-        _p = 0;
-        _i = 0;
-        _d = 0;
-        _previousError = 0.0f;
-    }
-    public string ToJson()
-    {
-        string json = "";
-        json += $"\"{name}\":{{\n";
-        json += $"\"ProportionalGain\":{proportionalGain},\n";
-        json += $"\"IntegralGain\":{integralGain},\n";
-        json += $"\"DerivativeGain\":{derivativeGain},\n";
-        json += "}\n";
-        return json;
-    }
-
-    public void FromJson(string json)
-    {
-        var p = JSON.Parse(json);
-        proportionalGain = p["ProportionalGain"].AsFloat;
-        integralGain = p["IntegralGain"].AsFloat;
-        derivativeGain = p["DerivativeGain"].AsFloat;
+        p = 0;
+        i = 0;
+        d = 0;
+        pVec = Vector3.zero;
+        iVec = Vector3.zero;
+        dVec = Vector3.zero;
+        previousError = 0.0f;
+        range = new Vector2(0, 0);
     }
 }

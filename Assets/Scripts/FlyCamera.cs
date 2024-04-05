@@ -31,6 +31,8 @@ public class FlyCamera : MonoBehaviour
     private Vector3 lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
     private float totalRun = 1.0f;
 
+    public static bool UISelected = false;
+
     void Update()
     {
 
@@ -50,36 +52,39 @@ public class FlyCamera : MonoBehaviour
             //Mouse  camera angle done.  
         }
 
-        //Keyboard commands
-        float f = 0.0f;
-        Vector3 p = GetBaseInput();
-        if (Keyboard.current.leftShiftKey.IsPressed())
+        if (!UISelected)
         {
-            totalRun += Time.deltaTime;
-            p = p * totalRun * shiftAdd;
-            p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
-            p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
-            p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
-        }
-        else
-        {
-            totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
-            p = p * mainSpeed;
-        }
+            //Keyboard commands
+            float f = 0.0f;
+            Vector3 p = GetBaseInput();
+            if (Keyboard.current.leftShiftKey.IsPressed())
+            {
+                totalRun += Time.deltaTime;
+                p = p * totalRun * shiftAdd;
+                p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
+                p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
+                p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
+            }
+            else
+            {
+                totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
+                p = p * mainSpeed;
+            }
 
-        p = p * Time.deltaTime;
-        Vector3 newPosition = transform.position;
-        if (Keyboard.current.spaceKey.IsPressed()
-            || (movementStaysFlat && !(rotateOnlyIfMousedown && Mouse.current.rightButton.IsPressed())))
-        { //If player wants to move on X and Z axis only
-            transform.Translate(p);
-            newPosition.x = transform.position.x;
-            newPosition.z = transform.position.z;
-            transform.position = newPosition;
-        }
-        else
-        {
-            transform.Translate(p);
+            p = p * Time.deltaTime;
+            Vector3 newPosition = transform.position;
+            if (Keyboard.current.spaceKey.IsPressed()
+                || (movementStaysFlat && !(rotateOnlyIfMousedown && Mouse.current.rightButton.IsPressed())))
+            { //If player wants to move on X and Z axis only
+                transform.Translate(p);
+                newPosition.x = transform.position.x;
+                newPosition.z = transform.position.z;
+                transform.position = newPosition;
+            }
+            else
+            {
+                transform.Translate(p);
+            }
         }
 
     }
